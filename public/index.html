@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chat</title>
+        <style>
+            body {
+                color: #fff;
+                background-color: #111;
+            }
+
+            pre {
+                min-height: 600px;
+                width: 80%;
+                margin: auto;
+                border-left: 1px solid #00f;
+                overflow-y: scroll;
+                background-color: #333;
+            }
+
+            .header {
+                width: 80%;
+                margin: auto;
+                text-align: center;
+            }
+        </style>
+        <script src="/js/jquery.min.js"></script>
+        <script src="/js/signalr.js"></script>
+    </head>
+    <body>
+        <div class="header">
+            <h1>Chat App powered by SignalR</h1>
+            <table>
+                <tr>
+                    <td>
+                        <label for="name">Your Name:</label>
+                    </td>
+                    <td>
+                        <input type="text" id="name"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="message">Message:</label>
+                    </td>
+                    <td>
+                        <input type="text" id="message"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <button type="submit" id="send">Send Message</button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <hr/>
+        <div>
+            <pre id="chatBox"></pre>
+        </div>
+        <script>
+            $(function() {
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl("http://localhost:7071/api/")
+                    .configureLogging(signalR.LogLevel.Information)
+                    .build();
+
+                async function start() {
+                    try {
+                        await connection.start();
+                        console.log("SignalR Connected.");
+                    } catch (err) {
+                        console.log(err);
+                        setTimeout(start, 5000);
+                    }
+                };
+
+                connection.onclose(start);
+
+                connection.on("ReceiveMessage", (user, message) => {
+                    var element = $(`<p><span>${user}: ${message}</span></p>`);
+                    $("#chatBox").append(element);
+                });
+
+                $("#send").click(function() {
+                    var user = $("#name").val();
+                    var message = $("#message").val();
+                    try {
+                        $.post("http://localhost:7071/api/SendMessage", JSON.stringify({ "user": user, "message": message }), function() { console.log('sent')}, "json");
+                    } catch (err) {
+                        console.error(err);
+                    }
+                });
+                // Start the connection.
+                start();
+
+            });
+        </script>
+    </body>
+</html>
